@@ -1,0 +1,71 @@
+services:
+  web:
+    image: ghcr.io/karakeep-app/karakeep:${KARAKEEP_VERSION:-release}
+    restart: unless-stopped
+    volumes:
+      # By default, the data is stored in a docker volume called "data".
+      # If you want to mount a custom directory, change the volume mapping to:
+      # - /path/to/your/directory:/data
+      - data:/data
+    ports:
+      - 3000:3000
+    env_file:
+      - .env
+    environment:
+      MEILI_ADDR: http://meilisearch:7700
+      BROWSER_WEB_URL: http://chrome:9222
+
+      # You almost never want to change the value of the DATA_DIR variable.
+      # If you want to mount a custom directory, change the volume mapping above instead.
+      DATA_DIR: /data # DON'T CHANGE THIS
+    dns:
+      - 172.25.0.100
+    networks:
+      karakeep-net:
+        ipv4_address: 172.25.0.18
+  chrome:
+    image: gcr.io/zenika-hub/alpine-chrome:123
+    restart: unless-stopped
+    command:
+      - --no-sandbox
+      - --disable-gpu
+      - --disable-dev-shm-usage
+      - --remote-debugging-address=0.0.0.0
+      - --remote-debugging-port=9222
+      - --hide-scrollbars
+    dns:
+      - 172.25.0.100
+    networks:
+      karakeep-net:
+          ipv4_address: 172.25.0.20
+  meilisearch:
+    image: getmeili/meilisearch:v1.13.3
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      MEILI_NO_ANALYTICS: "true"
+    volumes:
+      - meilisearch:/meili_data
+    networks:
+      - karakeep-net
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    cap_add:
+      - NET_BIND_SERVICE
+    command: proxy-dns --address 0.0.0.0 --port 53 --upstream https://1.1.1.1/dns-query --upstream https://1.0.0.1/dns-query
+    networks:
+      karakeep-net:
+        ipv4_address: 172.25.0.100
+
+networks:
+  karakeep-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.25.0.0/16
+
+volumes:
+  meilisearch:
+  data:
