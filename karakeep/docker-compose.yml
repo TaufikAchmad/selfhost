@@ -1,6 +1,6 @@
 services:
   web:
-    image: ghcr.io/karakeep-app/karakeep:${KARAKEEP_VERSION:-release}
+    image: ghcr.io/karakeep-app/karakeep:0.26.0
     restart: unless-stopped
     volumes:
       # By default, the data is stored in a docker volume called "data".
@@ -8,7 +8,7 @@ services:
       # - /path/to/your/directory:/data
       - data:/data
     ports:
-      - 3000:3000
+      - "8765:3000"
     env_file:
       - .env
     environment:
@@ -26,6 +26,10 @@ services:
   chrome:
     image: gcr.io/zenika-hub/alpine-chrome:123
     restart: unless-stopped
+    volumes:
+      - ~/.config/google-chrome/Default:/data
+    ports:
+      - "9222:9222"
     command:
       - --no-sandbox
       - --disable-gpu
@@ -38,6 +42,7 @@ services:
     networks:
       karakeep-net:
           ipv4_address: 172.25.0.20
+    user: "1000:963"
   meilisearch:
     image: getmeili/meilisearch:v1.13.3
     restart: unless-stopped
@@ -50,7 +55,7 @@ services:
     networks:
       - karakeep-net
   cloudflared:
-    image: cloudflare/cloudflared:latest
+    image: cloudflare/cloudflared:2025.8.0
     restart: unless-stopped
     cap_add:
       - NET_BIND_SERVICE
@@ -69,3 +74,4 @@ networks:
 volumes:
   meilisearch:
   data:
+  chrome-data:
